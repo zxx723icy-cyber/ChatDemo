@@ -15,6 +15,13 @@ android {
         buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:3000/\"")
         buildConfigField("String", "UPLOAD_API_KEY", "\"change-this-test-key\"")
     }
+    compileOptions {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+kotlinOptions {
+    jvmTarget = "17"
+}
     buildFeatures { compose = true; buildConfig = true }
 }
 dependencies {
