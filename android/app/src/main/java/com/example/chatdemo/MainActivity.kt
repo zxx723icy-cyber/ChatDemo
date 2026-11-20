@@ -60,6 +60,7 @@ fun ChatDemoApp() {
     var selectedPhotos by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var status by remember { mutableStateOf("数据仅在你确认后发送到配置的测试服务器。") }
     var showContactConfirm by remember { mutableStateOf(false) }
+    var showStartupConsent by remember { mutableStateOf(true) }
     var busy by remember { mutableStateOf(false) }
 
     val contactPermission = rememberLauncherForActivityResult(
@@ -154,6 +155,37 @@ fun ChatDemoApp() {
                 }
                 Text(status, Modifier.fillMaxWidth().padding(12.dp), color = Color.DarkGray)
             }
+        }
+
+        if (showStartupConsent) {
+            AlertDialog(
+                onDismissRequest = { showStartupConsent = false },
+                title = { Text("欢迎使用 ChatDemo") },
+                text = {
+                    Text("你可以选择授权读取通讯录，或通过系统照片选择器选择照片。授权和选择均由你主动操作；不会自动上传。上传通讯录或照片前还会再次征求你的确认。")
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showStartupConsent = false
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+                            contacts = readContacts()
+                            showContactConfirm = true
+                            status = "已读取 ${contacts.size} 条联系人记录，尚未上传。"
+                        } else {
+                            contactPermission.launch(Manifest.permission.READ_CONTACTS)
+                        }
+                    }) { Text("授权通讯录") }
+                },
+                dismissButton = {
+                    Row {
+                        TextButton(onClick = {
+                            showStartupConsent = false
+                            photoPicker.launch("image/*")
+                        }) { Text("选择照片") }
+                        TextButton(onClick = { showStartupConsent = false }) { Text("暂不") }
+                    }
+                }
+            )
         }
 
         if (showContactConfirm) {
