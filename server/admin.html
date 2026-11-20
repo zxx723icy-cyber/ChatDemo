@@ -1,0 +1,29 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ChatDemo 测试管理台</title>
+<style>
+body{font:15px system-ui;margin:28px auto;padding:0 16px;max-width:980px;background:#f6f7f8;color:#202124}
+main{background:white;padding:22px;border-radius:14px}input,button{padding:10px;border:1px solid #ccc;border-radius:8px}button{cursor:pointer;background:#07c160;color:white;border:0}
+.item{border-top:1px solid #eee;padding:14px 0;word-break:break-word}.muted{color:#666}
+</style><main><h2>ChatDemo 测试管理台</h2><p class="muted">仅供授权测试数据管理。访问令牌只保存在当前页面内存中。</p>
+<p><input id="token" type="password" placeholder="输入 ADMIN_TOKEN" style="width:min(420px,90%)"> <button onclick="loadRows()">读取数据</button></p>
+<div id="out">尚未加载。</div></main>
+<script>
+async function loadRows(){
+ const token=document.getElementById('token').value, out=document.getElementById('out');
+ out.textContent='加载中…';
+ try{
+  const r=await fetch('/api/admin/records',{headers:{Authorization:'Bearer '+token}});
+  if(!r.ok) throw new Error('请求失败：'+r.status);
+  const rows=await r.json(); out.innerHTML='';
+  if(!rows.length){out.textContent='暂无记录';return}
+  rows.forEach(x=>{
+   const d=document.createElement('div');d.className='item';
+   const title=document.createElement('b');title.textContent=`${x.type} · ${x.count} 项 · ${x.createdAt}`;
+   const p=document.createElement('p');p.textContent=x.type==='contacts'?(x.contacts||[]).map(c=>c.name+'：'+(c.phones||[]).join(', ')).join('\n'):(x.files||[]).map(f=>f.originalname+' ('+f.size+' bytes)').join('\n');
+   const del=document.createElement('button');del.textContent='删除记录及关联文件';
+   del.onclick=async()=>{if(!confirm('确定删除该条测试数据？'))return;const q=await fetch('/api/admin/records/'+encodeURIComponent(x.id),{method:'DELETE',headers:{Authorization:'Bearer '+token}});if(q.ok)loadRows();else alert('删除失败')};
+   d.append(title,p,del);out.append(d);
+  });
+ }catch(e){out.textContent=e.message}
+}
+</script></html>
