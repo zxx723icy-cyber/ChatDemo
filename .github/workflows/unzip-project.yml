@@ -34,7 +34,7 @@ jobs:
           cp "$(find_file strings.xml)" android/app/src/main/res/values/strings.xml
           cp "$(find_file settings.gradle.kts)" android/settings.gradle.kts
           cp "$(find_file gradle.properties)" android/gradle.properties
-          cp "$(find_file build.gradle.kts)" android/app/build.gradle.kts
+          cp /tmp/chatdemo/build.gradle.kts android/app/build.gradle.kts
 
           cp "$(find_file server.js)" server/server.js
           cp "$(find_file package.json)" server/package.json
