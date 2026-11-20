@@ -55,6 +55,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add android server .github/workflows
+          git add android server
           git commit -m "Prepare ChatDemo project structure" || echo "No changes"
           git push
