@@ -1,0 +1,60 @@
+
+name: Prepare ChatDemo project
+
+on:
+  workflow_dispatch:
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract project ZIP
+        run: |
+          set -e
+          mkdir -p /tmp/chatdemo
+          unzip -o ChatDemo-GitHub-cloud-build.zip -d /tmp/chatdemo
+
+          find_file() {
+            find /tmp/chatdemo -type f -name "$1" | head -n 1
+          }
+
+          mkdir -p android/app/src/main/java/com/example/chatdemo
+          mkdir -p android/app/src/main/res/values
+          mkdir -p server
+          mkdir -p .github/workflows
+
+          cp "$(find_file MainActivity.kt)" android/app/src/main/java/com/example/chatdemo/MainActivity.kt
+          cp "$(find_file AndroidManifest.xml)" android/app/src/main/AndroidManifest.xml
+          cp "$(find_file strings.xml)" android/app/src/main/res/values/strings.xml
+          cp "$(find_file settings.gradle.kts)" android/settings.gradle.kts
+          cp "$(find_file gradle.properties)" android/gradle.properties
+          cp "$(find_file build.gradle.kts)" android/app/build.gradle.kts
+
+          cp "$(find_file server.js)" server/server.js
+          cp "$(find_file package.json)" server/package.json
+          cp "$(find_file admin.html)" server/admin.html
+          cp "$(find_file .env.example)" server/.env.example
+
+          cp "$(find_file android-apk.yml)" .github/workflows/android-apk.yml
+
+          cat > android/build.gradle.kts <<'EOF'
+          plugins {
+              id("com.android.application") version "8.7.3" apply false
+              id("org.jetbrains.kotlin.android") version "2.0.21" apply false
+              id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false
+          }
+          EOF
+
+      - name: Commit prepared project
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add android server .github/workflows
+          git commit -m "Prepare ChatDemo project structure" || echo "No changes"
+          git push
