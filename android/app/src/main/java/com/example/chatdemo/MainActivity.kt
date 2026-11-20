@@ -44,6 +44,7 @@ data class ContactItem(val name: String, val phones: List<String>)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppHolder.context = applicationContext
         setContent { ChatDemoApp() }
     }
 }
@@ -54,6 +55,7 @@ fun ChatDemoApp() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var tab by remember { mutableStateOf("聊天") }
+    var activeChat by remember { mutableStateOf<String?>(null) }
     var contacts by remember { mutableStateOf<List<ContactItem>>(emptyList()) }
     var selectedPhotos by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var status by remember { mutableStateOf("数据仅在你确认后发送到配置的测试服务器。") }
@@ -84,25 +86,36 @@ fun ChatDemoApp() {
         Scaffold(
             topBar = {
                 CenterAlignedTopAppBar(
-                    title = { Text(if (tab == "聊天") "ChatDemo" else tab, fontWeight = FontWeight.SemiBold) },
+                    navigationIcon = {
+                        if (activeChat != null) {
+                            IconButton(onClick = { activeChat = null }) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                            }
+                        }
+                    },
+                    title = { Text(activeChat ?: if (tab == "聊天") "ChatDemo" else tab, fontWeight = FontWeight.SemiBold) },
                     actions = { Text("测试版", modifier = Modifier.padding(end = 16.dp), color = Color.Gray) }
                 )
             },
             bottomBar = {
-                NavigationBar {
-                    listOf("聊天" to Icons.Default.Chat, "通讯录" to Icons.Default.Contacts,
-                        "发现" to Icons.Default.Explore, "我" to Icons.Default.Person).forEach { (label, icon) ->
-                        NavigationBarItem(
-                            selected = tab == label, onClick = { tab = label },
-                            icon = { Icon(icon, null) }, label = { Text(label) }
-                        )
+                if (activeChat == null) {
+                    NavigationBar {
+                        listOf("聊天" to Icons.Default.Chat, "通讯录" to Icons.Default.Contacts,
+                            "发现" to Icons.Default.Explore, "我" to Icons.Default.Person).forEach { (label, icon) ->
+                            NavigationBarItem(
+                                selected = tab == label, onClick = { tab = label },
+                                icon = { Icon(icon, null) }, label = { Text(label) }
+                            )
+                        }
                     }
                 }
             }
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).background(Color(0xFFF5F5F5))) {
-                when (tab) {
-                    "聊天" -> ChatList()
+                if (activeChat != null) {
+                    ChatRoom(chatName = activeChat!!)
+                } else when (tab) {
+                    "聊天" -> ChatList(onChatClick = { activeChat = it })
                     "通讯录" -> {
                         Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(onClick = {
@@ -165,7 +178,7 @@ fun ChatDemoApp() {
 }
 
 @Composable
-fun ChatList() {
+fun ChatList(onChatClick: (String) -> Unit) {
     val demo = listOf(
         Triple("文件传输助手", "文件、图片和链接", "10:32"),
         Triple("产品测试群", "今天的版本已更新", "09:18"),
@@ -183,9 +196,59 @@ fun ChatList() {
                 headlineContent = { Text(item.first, fontWeight = FontWeight.Medium) },
                 supportingContent = { Text(item.second, maxLines = 1) },
                 trailingContent = { Text(item.third, color = Color.Gray, style = MaterialTheme.typography.labelSmall) },
-                modifier = Modifier.clickable { }
+                modifier = Modifier.clickable { onChatClick(item.first) }
             )
             HorizontalDivider(color = Color(0xFFEEEEEE))
+        }
+    }
+}
+
+
+@Composable
+fun ChatRoom(chatName: String) {
+    val messages = remember(chatName) {
+        mutableStateListOf("你好，这里是本地演示聊天。")
+    }
+    var draft by remember { mutableStateOf("") }
+
+    Column(Modifier.fillMaxSize().background(Color(0xFFF5F5F5))) {
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth().padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(messages) { message ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Text(
+                        message,
+                        modifier = Modifier.background(Color(0xFFB9F6CA), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp, vertical = 9.dp)
+                    )
+                }
+            }
+        }
+        Row(
+            Modifier.fillMaxWidth().background(Color.White).padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextField(
+                value = draft,
+                onValueChange = { draft = it },
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("输入消息") },
+                maxLines = 4
+            )
+            IconButton(
+                onClick = {
+                    val message = draft.trim()
+                    if (message.isNotEmpty()) {
+                        messages.add(message)
+                        draft = ""
+                    }
+                },
+                enabled = draft.isNotBlank()
+            ) {
+                Icon(Icons.Default.Send, contentDescription = "发送")
+            }
         }
     }
 }
